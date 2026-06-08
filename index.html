@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FWF Program Budget Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7f6f3;
+    --surface: #ffffff;
+    --border: #e8e5df;
+    --text-primary: #1a1814;
+    --text-secondary: #7a7670;
+    --text-muted: #b0aca6;
+    --accent-blue: #1d5fa8;
+    --accent-teal: #0f7b5e;
+    --accent-amber: #b86c0e;
+    --accent-red: #a12d2d;
+    --accent-blue-light: #e8f0fb;
+    --accent-teal-light: #e6f4ef;
+    --radius: 10px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+    padding: 2rem;
+  }
+
+  .header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .header-left h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--text-primary);
+  }
+
+  .header-left p {
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+  }
+
+  .program-selector {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .program-selector label {
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+
+  select {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.5rem 2rem 0.5rem 0.875rem;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%237a7670' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    min-width: 180px;
+    box-shadow: var(--shadow);
+  }
+
+  select:focus { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
+
+  .updated {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6875rem;
+    color: var(--text-muted);
+    margin-top: 0.25rem;
+    text-align: right;
+  }
+
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0.875rem;
+    margin-bottom: 1.75rem;
+  }
+
+  .tile {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.125rem 1.25rem;
+    box-shadow: var(--shadow);
+  }
+
+  .tile-label {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.5rem;
+  }
+
+  .tile-value {
+    font-size: 1.375rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--text-primary);
+    font-feature-settings: 'tnum';
+  }
+
+  .tile-sub {
+    font-size: 0.6875rem;
+    color: var(--text-muted);
+    margin-top: 0.3rem;
+  }
+
+  .tile.positive .tile-value { color: var(--accent-teal); }
+  .tile.negative .tile-value { color: var(--accent-red); }
+  .tile.blue .tile-value { color: var(--accent-blue); }
+
+  .charts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.75rem;
+  }
+
+  @media (max-width: 700px) { .charts { grid-template-columns: 1fr; } }
+
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem 1.375rem;
+    box-shadow: var(--shadow);
+  }
+
+  .chart-title {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 0.25rem;
+    letter-spacing: -0.01em;
+  }
+
+  .chart-sub {
+    font-size: 0.6875rem;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+  }
+
+  .chart-wrap { position: relative; height: 200px; }
+
+  .progress-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.75rem;
+  }
+
+  @media (max-width: 700px) { .progress-section { grid-template-columns: 1fr; } }
+
+  .progress-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem 1.375rem;
+    box-shadow: var(--shadow);
+  }
+
+  .progress-title {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+  }
+
+  .progress-item { margin-bottom: 1rem; }
+  .progress-item:last-child { margin-bottom: 0; }
+
+  .progress-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    margin-bottom: 0.375rem;
+  }
+
+  .progress-name { color: var(--text-primary); font-weight: 500; }
+  .progress-pct { color: var(--text-secondary); font-family: 'DM Mono', monospace; font-size: 0.6875rem; }
+
+  .progress-bar-bg {
+    height: 6px;
+    background: var(--bg);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.6s ease;
+  }
+
+  .loading {
+    text-align: center;
+    padding: 4rem;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+  }
+
+  .error-msg {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    color: var(--accent-red);
+    font-size: 0.8125rem;
+    margin-bottom: 1rem;
+  }
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 1.75rem 0;
+  }
+
+  .section-label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>Program Budget View</h1>
+    <p>Families & Workers Fund — live from Airtable</p>
+  </div>
+  <div class="program-selector">
+    <label for="programSelect">Program</label>
+    <div>
+      <select id="programSelect"><option>Loading...</option></select>
+      <div class="updated" id="updatedAt"></div>
+    </div>
+    <div class="year-tabs">
+      <button class="year-tab active" data-year="all">All time</button>
+      <button class="year-tab" data-year="2026">2026</button>
+      <button class="year-tab" data-year="2025">2025</button>
+      <button class="year-tab" data-year="2024">2024</button>
+    </div>
+  </div>
+</div>
+
+<div id="errorBox" style="display:none" class="error-msg"></div>
+<div id="content"><div class="loading">Connecting to Airtable...</div></div>
+
+<script>
+// ─── CONFIGURATION ────────────────────────────────────────────────────────────
+// Replace with your Airtable Personal Access Token (read-only, scoped to BW Test base)
+const PAT      = 'YOUR_AIRTABLE_PAT_HERE';
+const BASE_ID  = 'appOpECWOOQQeBlYV';
+const ALLOC_TABLE = 'Allocations';
+
+const FIELDS = [
+  'Name', 'Sub-Account', 'Status',
+  'Total Revenue Committed', 'Total Grants Committed', 'Total Contracts Committed',
+  'Remaining Balance', 'Total Committed Out', 'Unpaid Commitments'
+];
+
+const SPLITS_TABLE = 'Transaction Splits';
+const SPLITS_FIELDS = ['Allocation', 'Revenue Amount', 'Grants Out Amount', 'Contract/Ops Amount', 'Year'];
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+const fmt = (v, compact=false) => {
+  const n = Math.abs(v || 0);
+  if (compact) {
+    if (n >= 1e6) return (v < 0 ? '-' : '') + '$' + (n/1e6).toFixed(1) + 'M';
+    if (n >= 1e3) return (v < 0 ? '-' : '') + '$' + Math.round(n/1e3) + 'K';
+  }
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(v || 0);
+};
+
+const pct = (paid, committed) => {
+  if (!committed || committed === 0) return 0;
+  return Math.min(100, Math.round(Math.abs(paid) / Math.abs(committed) * 100));
+};
+
+let charts = {};
+
+async function fetchAll(table, fields, formula) {
+  let records = [];
+  let offset = null;
+  do {
+    const params = new URLSearchParams();
+    fields.forEach(f => params.append('fields[]', f));
+    if (formula) params.set('filterByFormula', formula);
+    if (offset) params.set('offset', offset);
+    const res = await fetch(
+      `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(table)}?${params}`,
+      { headers: { 'Authorization': `Bearer ${PAT}` } }
+    );
+    if (!res.ok) throw new Error(`Airtable error ${res.status}: ${await res.text()}`);
+    const data = await res.json();
+    records = records.concat(data.records);
+    offset = data.offset;
+  } while (offset);
+  return records;
+}
+
+async function fetchAllocations() {
+  const recs = await fetchAll(ALLOC_TABLE, FIELDS, "AND({Sub-Account}='Programs',{Status}='Active')");
+  return recs.map(r => ({ id: r.id, ...r.fields }));
+}
+
+async function fetchSplits() {
+  const recs = await fetchAll(SPLITS_TABLE, SPLITS_FIELDS, null);
+  return recs.map(r => ({ ...r.fields, allocId: r.fields.Allocation?.[0]?.id }));
+}
+
+function populateSelector(programs) {
+  const sel = document.getElementById('programSelect');
+  sel.innerHTML = programs.map(p => `<option value="${p.id}">${p.Name}</option>`).join('');
+}
+
+function renderDashboard(prog, splits, selectedYear) {
+  // Filter splits for this allocation and year
+  const allocSplits = splits.filter(s => {
+    if (s.allocId !== prog.id) return false;
+    if (selectedYear === 'all') return true;
+    const yr = Array.isArray(s.Year) ? String(s.Year[0]) : String(s.Year || '');
+    return yr === selectedYear;
+  });
+
+  const yearRevenue = allocSplits.reduce((sum, s) => sum + (s['Revenue Amount'] || 0), 0);
+  const yearGrantsOut = allocSplits.reduce((sum, s) => sum + Math.abs(s['Grants Out Amount'] || 0), 0);
+  const yearContracts = allocSplits.reduce((sum, s) => sum + Math.abs(s['Contract/Ops Amount'] || 0), 0);
+  const grantsCommitted    = Math.abs(prog['Total Grants Committed'] || 0);
+  const contractsCommitted = Math.abs(prog['Total Contracts Committed'] || 0);
+  const revenueCommitted   = prog['Total Revenue Committed'] || 0;
+  const remaining          = prog['Remaining Balance'] || 0;
+  const unpaid             = Math.abs(prog['Unpaid Commitments'] || 0);
+  const totalOut           = Math.abs(prog['Total Committed Out'] || 0);
+
+  // Actuals from transaction splits (year-filtered)
+  const grantsPaid     = yearGrantsOut;
+  const contractsPaid  = yearContracts;
+
+  const grantPct    = pct(grantsPaid, grantsCommitted);
+  const contractPct = pct(contractsPaid, contractsCommitted);
+
+  document.getElementById('content').innerHTML = `
+    <div class="section-label">Budget summary</div>
+    <div class="tiles">
+      <div class="tile blue">
+        <div class="tile-label">Revenue committed</div>
+        <div class="tile-value">${fmt(revenueCommitted, true)}</div>
+        <div class="tile-sub">total budget</div>
+      </div>
+      <div class="tile">
+        <div class="tile-label">Total committed out</div>
+        <div class="tile-value">${fmt(totalOut, true)}</div>
+        <div class="tile-sub">grants + contracts</div>
+      </div>
+      <div class="tile ${remaining >= 0 ? 'positive' : 'negative'}">
+        <div class="tile-label">Remaining balance</div>
+        <div class="tile-value">${fmt(remaining, true)}</div>
+        <div class="tile-sub">${remaining >= 0 ? 'uncommitted budget' : 'over-committed'}</div>
+      </div>
+      <div class="tile">
+        <div class="tile-label">Unpaid commitments</div>
+        <div class="tile-value">${fmt(unpaid, true)}</div>
+        <div class="tile-sub">committed, not yet paid</div>
+      </div>
+    </div>
+
+    <div class="charts">
+      <div class="chart-card">
+        <div class="chart-title">Grants out</div>
+        <div class="chart-sub">committed vs paid</div>
+        <div class="chart-wrap"><canvas id="grantsChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Contracts & honoraria</div>
+        <div class="chart-sub">committed vs paid</div>
+        <div class="chart-wrap"><canvas id="contractsChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="progress-section">
+      <div class="progress-card">
+        <div class="progress-title">Disbursement progress</div>
+        <div class="progress-item">
+          <div class="progress-labels">
+            <span class="progress-name">Grants paid</span>
+            <span class="progress-pct">${fmt(grantsPaid, true)} / ${fmt(grantsCommitted, true)} &middot; ${grantPct}%</span>
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" style="width:${grantPct}%;background:var(--accent-blue)"></div>
+          </div>
+        </div>
+        <div class="progress-item">
+          <div class="progress-labels">
+            <span class="progress-name">Contracts paid</span>
+            <span class="progress-pct">${fmt(contractsPaid, true)} / ${fmt(contractsCommitted, true)} &middot; ${contractPct}%</span>
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" style="width:${contractPct}%;background:var(--accent-teal)"></div>
+          </div>
+        </div>
+      </div>
+      <div class="progress-card">
+        <div class="progress-title">Budget utilization</div>
+        <div class="progress-item">
+          <div class="progress-labels">
+            <span class="progress-name">Of revenue committed</span>
+            <span class="progress-pct">${pct(totalOut, revenueCommitted)}% allocated</span>
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" style="width:${Math.min(100,pct(totalOut,revenueCommitted))}%;background:var(--accent-amber)"></div>
+          </div>
+        </div>
+        <div class="progress-item">
+          <div class="progress-labels">
+            <span class="progress-name">Grants vs contracts</span>
+            <span class="progress-pct">${totalOut > 0 ? Math.round(grantsCommitted/totalOut*100) : 0}% / ${totalOut > 0 ? Math.round(contractsCommitted/totalOut*100) : 0}%</span>
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" style="width:${totalOut > 0 ? Math.min(100,grantsCommitted/totalOut*100) : 0}%;background:var(--accent-blue)"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Destroy old charts
+  Object.values(charts).forEach(c => c.destroy());
+  charts = {};
+
+  const chartDefaults = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: true, position: 'bottom', labels: { boxWidth: 10, font: { family: 'DM Sans', size: 11 }, color: '#7a7670', padding: 12 } } },
+    scales: {
+      x: { ticks: { callback: v => fmt(v, true), font: { family: 'DM Mono', size: 10 }, color: '#b0aca6' }, grid: { color: '#f0ede8' } },
+      y: { ticks: { font: { family: 'DM Sans', size: 11 }, color: '#7a7670' }, grid: { display: false } }
+    }
+  };
+
+  charts.grants = new Chart(document.getElementById('grantsChart'), {
+    type: 'bar',
+    data: {
+      labels: [''],
+      datasets: [
+        { label: 'Committed', data: [grantsCommitted], backgroundColor: '#d6e4f7', borderColor: '#1d5fa8', borderWidth: 1.5, borderRadius: 4 },
+        { label: 'Paid', data: [grantsPaid], backgroundColor: '#1d5fa8', borderRadius: 4 }
+      ]
+    },
+    options: { ...chartDefaults, indexAxis: 'y' }
+  });
+
+  charts.contracts = new Chart(document.getElementById('contractsChart'), {
+    type: 'bar',
+    data: {
+      labels: [''],
+      datasets: [
+        { label: 'Committed', data: [contractsCommitted], backgroundColor: '#d0ede6', borderColor: '#0f7b5e', borderWidth: 1.5, borderRadius: 4 },
+        { label: 'Paid', data: [contractsPaid], backgroundColor: '#0f7b5e', borderRadius: 4 }
+      ]
+    },
+    options: { ...chartDefaults, indexAxis: 'y' }
+  });
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+(async () => {
+  try {
+    if (PAT === 'YOUR_AIRTABLE_PAT_HERE') {
+      document.getElementById('errorBox').style.display = 'block';
+      document.getElementById('errorBox').textContent =
+        'Add your Airtable Personal Access Token: open this file in a text editor and replace YOUR_AIRTABLE_PAT_HERE with your token.';
+      document.getElementById('content').innerHTML = '';
+      return;
+    }
+
+    document.getElementById('content').innerHTML = '<div class="loading">Loading data...</div>';
+    const [programs, splits] = await Promise.all([fetchAllocations(), fetchSplits()]);
+    populateSelector(programs);
+
+    const sel = document.getElementById('programSelect');
+    const yearTabs = document.querySelectorAll('.year-tab');
+
+    let selectedYear = 'all';
+
+    const render = () => {
+      const prog = programs.find(p => p.id === sel.value);
+      if (prog) renderDashboard(prog, splits, selectedYear);
+    };
+
+    sel.addEventListener('change', render);
+    yearTabs.forEach(btn => {
+      btn.addEventListener('click', () => {
+        yearTabs.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedYear = btn.dataset.year;
+        render();
+      });
+    });
+
+    render();
+
+    document.getElementById('updatedAt').textContent =
+      'Updated ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  } catch (err) {
+    document.getElementById('errorBox').style.display = 'block';
+    document.getElementById('errorBox').textContent = 'Error: ' + err.message;
+    document.getElementById('content').innerHTML = '';
+  }
+})();
+</script>
+</body>
+</html>
