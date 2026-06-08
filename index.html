@@ -463,10 +463,10 @@ function renderDashboard(prog) {
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 (async () => {
   try {
-    if (PAT === 'patWnlBdUonFGPgYJ.631042b662699a18b42f4d04f6f4c754d85691f66d94e4533bba8cafc20b0039') {
+    if (PAT === 'YOUR_AIRTABLE_PAT_HERE') {
       document.getElementById('errorBox').style.display = 'block';
       document.getElementById('errorBox').textContent =
-        'Add your Airtable Personal Access Token: open this file in a text editor and replace patWnlBdUonFGPgYJ.631042b662699a18b42f4d04f6f4c754d85691f66d94e4533bba8cafc20b0039 with your token.';
+        'Add your Airtable Personal Access Token: open this file in a text editor and replace YOUR_AIRTABLE_PAT_HERE with your token.';
       document.getElementById('content').innerHTML = '';
       return;
     }
